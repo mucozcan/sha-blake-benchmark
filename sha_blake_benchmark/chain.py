@@ -2,25 +2,24 @@ import hashlib
 import json
 from time import time
 from typing import Dict
-from config import nonce
-from merkle_tree import BlakeMerkleTree, SHAMerkleTree
+from config import puzzle
 
 class Chain:
     def __init__(self): 
         self.current_transactions = []
         self.chain = []
 
-        self.new_block(proof=100, previous_hash="1", merkle_root="0", guess_hash="1") # genesis block
+        self.new_block(nonce=100, previous_hash="1", merkle_root="0") 
 
-    def new_block(self, proof: int, merkle_root: str, previous_hash=None, guess_hash=None) -> Dict:
+    def new_block(self, nonce: int, merkle_root: str, previous_hash=None) -> Dict:
         
+        header = self.hash({'header': str(previous_hash or self.hash(self.chain[-1])) + str(merkle_root) + str(nonce)})
         block = {
                 'index': len(self.chain) + 1,
-                'timestamp': time(),
-                'nonce': guess_hash or self.hash(self.chain[-1]),
+                'hash': header,
+                'nonce': nonce,
                 'merkle_root': merkle_root,
-                'proof': proof,
-                'previous_hash': previous_hash or self.hash(self.chain[-1]),
+                'previous_hash': previous_hash or self.hash(self.chain[-1]['hash']),
         }
 
         self.current_transactions = []
@@ -47,17 +46,17 @@ class Chain:
     def hash(block: Dict):
         raise NotImplementedError
 
-    def proof_of_work(self, previous_proof):
-        proof = 0
+    def proof_of_work(self, previous_nonce):
+        nonce = 0
 
         while True: 
-            guess_hash = self.valid_proof(previous_proof, proof) 
-            if guess_hash[:nonce] == nonce * "0":
+            guess_hash = self.valid_proof(previous_nonce, nonce) 
+            if guess_hash[:puzzle] == puzzle * "0":
                 print(guess_hash)
                 break
-            proof += 1
+            nonce += 1
             
-        return proof, guess_hash
+        return nonce
 
     @staticmethod
     def valid_proof(previous_proof, proof):

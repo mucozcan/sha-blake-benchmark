@@ -1,3 +1,3 @@
 
-hash = "blake"
-nonce = 2
+hash = "blake2b"
+puzzle = 2

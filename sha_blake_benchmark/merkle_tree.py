@@ -1,111 +1,76 @@
-from typing import List
-import typing
 import hashlib
-
-class BaseNode:
-    def __init__(self, left, right, value: str, content):
-        self.left: BaseNode = left
-        self.right: BaseNode = right
-        self.value = value
-        self.content = content
-
-    def __str__(self):
-        return str(self.value)
+import binascii
 
 
-class BlakeNode(BaseNode):
-    def __init__(self, left, right, value, content):
-        BaseNode.__init__(self, left, right, value, content)
+class MerkleTree(object):
+    def __init__(self, hash_type="sha256"):
+        hash_type = hash_type.lower()
+        if hash_type in ['sha256', 'blake2b']:
+            self.hash_function = getattr(hashlib, hash_type)
+        else:
+            raise Exception('`hash_type` {} nor supported'.format(hash_type))
 
-    @staticmethod
-    def hash(val: str) -> str:
-        return hashlib.blake2b(val.encode('utf-8')).hexdigest() # 64B digest_size
+        self.reset_tree()
 
+    def _to_hex(self, x):
+        return x.hex()
+        
 
-class SHANode(BaseNode):
-    def __init__(self, left, right, value, content):
-        BaseNode.__init__(self, left, right, value, content)
+    def reset_tree(self):
+        self.leaves = list()
+        self.levels = None
+        self.is_ready = False
 
-    @staticmethod
-    def hash(val: str) -> str:
-        return hashlib.sha256(val.encode('utf-8')).hexdigest() # 32B digest_size
+    def add_leaf(self, values, do_hash=False):
+        self.is_ready = False
+        # check if single leaf
+        if not isinstance(values, tuple) and not isinstance(values, list):
+            values = [values]
+        for v in values:
+            if do_hash:
+                v = v.encode('utf-8')
+                v = self.hash_function(v).hexdigest()
+            v = bytearray.fromhex(v)
+            self.leaves.append(v)
+            
+    def get_leaf(self, index):
+        return self._to_hex(self.leaves[index])
 
+    def get_leaf_count(self):
+        return len(self.leaves)
 
-class BaseMerkleTree:
+    def get_tree_ready_state(self):
+        return self.is_ready
 
-    def print_tree(self) -> None:
-        self.__print_tree_rec(self.root)
- 
-    def __print_tree_rec(self, node: BaseNode)-> None:
-        if node != None:
-            if node.left != None:
-                print("Left: "+str(node.left))
-                print("Right: "+str(node.right))
+    def _calculate_next_level(self):
+        solo_leave = None
+        N = len(self.levels[0])  # number of leaves on the level
+        if N % 2 == 1:  # if odd number of leaves on the level
+            solo_leave = self.levels[0][-1]
+            N -= 1
+
+        new_level = []
+        for l, r in zip(self.levels[0][0:N:2], self.levels[0][1:N:2]):
+            new_level.append(self.hash_function(l+r).digest())
+        if solo_leave is not None:
+            new_level.append(solo_leave)
+        self.levels = [new_level, ] + self.levels  # prepend new level
+
+    def make_tree(self):
+        self.is_ready = False
+        if self.get_leaf_count() > 0:
+            self.levels = [self.leaves, ]
+            while len(self.levels[0]) > 1:
+                self._calculate_next_level()
+        self.is_ready = True
+
+    def get_merkle_root(self):
+        if self.is_ready:
+            if self.levels is not None:
+                return self._to_hex(self.levels[0][0])
             else:
-                print("Input")
-            print("Value: "+str(node.value))
-            print("Content: "+str(node.content))
-            print("")
-            self.__printTreeRec(node.left)
-            self.__printTreeRec(node.right)
-    
-    def get_root_hash(self)-> str:
-        return self.root.value
+                return None
+        else:
+            return None
 
 
-class BlakeMerkleTree(BaseMerkleTree):
-    def __init__(self, values: List[str])-> None: # FIXME recursive depends on length of leaves 
-        self.__build_tree(values)
- 
-    def __build_tree(self, values: List[str])-> None:
- 
-        leaves: List[BlakeNode] = [BlakeNode(None, None, BlakeNode.hash(e),e) for e in values]
-        if len(leaves) % 2 == 1:
-            leaves.append(leaves[-1:][0]) # duplicate last elem if odd number of elements
-        self.root: BlakeNode = self.__build_tree_rec(leaves) 
-    
-    def __build_tree_rec(self, nodes: List[BlakeNode])-> BlakeNode:
-        half: int = len(nodes) // 2
- 
-        if len(nodes) == 2:
-            return BlakeNode(nodes[0], nodes[1], BlakeNode.hash(nodes[0].value + nodes[1].value), nodes[0].content+"+"+nodes[1].content)
-        
-        left: BlakeNode = self.__build_tree_rec(nodes[:half])
-        right: BlakeNode = self.__build_tree_rec(nodes[half:])
-        value: str = BlakeNode.hash(left.value + right.value)
-        content: str = self.__build_tree_rec(nodes[:half]).content+"+"+self.__build_tree_rec(nodes[half:]).content
-        return BlakeNode(left, right, value,content)
-
-class SHAMerkleTree(BaseMerkleTree):
-    def __init__(self, values: List[str])-> None:
-        self.__build_tree(values)
- 
-    def __build_tree(self, values: List[str])-> None: # FIXME recursive depends on length of leaves 
- 
-        leaves: List[SHANode] = [SHANode(None, None, SHANode.hash(e),e) for e in values]
-        if len(leaves) % 2 == 1:
-            leaves.append(leaves[-1:][0]) # duplicate last elem if odd number of elements
-        self.root: SHANode = self.__build_tree_rec(leaves) 
-    
-    def __build_tree_rec(self, nodes: List[SHANode])-> SHANode:
-        half: int = len(nodes) // 2
-        if len(nodes) % 2 == 1:
-            nodes.append(nodes[-1:][0]) # duplicate last elem if odd number of elements
-        if len(nodes) == 2:
-            return SHANode(nodes[0], nodes[1], SHANode.hash(nodes[0].value + nodes[1].value), nodes[0].content+"+"+nodes[1].content)
-        
-        left: SHANode = self.__build_tree_rec(nodes[:half])
-        right: SHANode = self.__build_tree_rec(nodes[half:])
-        value: str = SHANode.hash(left.value + right.value)
-        content: str = self.__build_tree_rec(nodes[:half]).content+"+"+self.__build_tree_rec(nodes[half:]).content
-        return SHANode(left, right, value,content)
-
-
-if __name__ == "__main__":
-    values = ["Merkle", "Tree", "Test", "SHA", "BLAKE2b", "Data", "Security", "Benchmark"]
-
-    sha_tree = SHAMerkleTree(values)
-    blake_tree = BlakeMerkleTree(values)
-
-    print(f"SHA-256 Root Hash: {sha_tree.get_root_hash()}")
-    print(f"Blake Root Hash: {blake_tree.get_root_hash()}")

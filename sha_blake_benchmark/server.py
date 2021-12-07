@@ -4,16 +4,16 @@ from uuid import uuid4
 from pydantic import BaseModel
 
 from chain import (BlakeChain, SHAChain)
-from merkle_tree import SHAMerkleTree, BlakeMerkleTree
+from merkle_tree import MerkleTree
 import config as cfg
 
 
-if cfg.hash == "blake":
+if cfg.hash == "blake2b":
     blockchain = BlakeChain()
-    merkle_tree = BlakeMerkleTree
 else:
     blockchain = SHAChain()
-    merkle_tree = SHAMerkleTree
+
+merkle_tree = MerkleTree(cfg.hash)
 
 sender_id = str(uuid4()).replace('-', '')
 recipient_id = str(uuid4()).replace('-', '')
@@ -29,26 +29,28 @@ app = FastAPI() # TODO pass port number from config file
 @app.get('/mine')
 def mine():
     last_block = blockchain.last_block
-    last_proof = last_block['proof']
-    proof, guess_hash = blockchain.proof_of_work(last_proof)
+    last_nonce = last_block['nonce']
+    nonce = blockchain.proof_of_work(last_nonce)
     blockchain.new_transaction(
             sender="0",
             recipient=miner_id,
             amount=1,)
 
-    previous_hash = blockchain.hash(last_block)
+    previous_hash = last_block['hash']
     txs = [str(tx) for tx in blockchain.current_transactions]
-    print(len(txs))
-    merkle_root = merkle_tree(txs).get_root_hash() 
-    block = blockchain.new_block(proof, merkle_root, previous_hash, guess_hash)
+    merkle_tree.add_leaf(txs, True)
+    merkle_tree.make_tree()
+    merkle_root = merkle_tree.get_merkle_root()
+    # merkle_root = merkle_tree(txs).get_root_hash() 
+    block = blockchain.new_block(nonce, merkle_root, previous_hash)
     response = {
             'message': 'New block added',
             'index': block['index'],
-            'hash': block['nonce'],
+            'hash': block['hash'],
             'merkle_root': block['merkle_root'],
             'previous_hash': block['previous_hash'],
     }
-
+    merkle_tree.reset_tree()
     return response
 
 
