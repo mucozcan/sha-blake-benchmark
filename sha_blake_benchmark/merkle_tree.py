@@ -3,7 +3,7 @@ import typing
 import hashlib
 
 class BaseNode:
-    def __init__(self, left, right, value: str, content) -> None:
+    def __init__(self, left, right, value: str, content):
         self.left: BaseNode = left
         self.right: BaseNode = right
         self.value = value
@@ -54,7 +54,7 @@ class BaseMerkleTree:
 
 
 class BlakeMerkleTree(BaseMerkleTree):
-    def __init__(self, values: List[str])-> None: # FIXME depends on length of leaves 
+    def __init__(self, values: List[str])-> None: # FIXME recursive depends on length of leaves 
         self.__build_tree(values)
  
     def __build_tree(self, values: List[str])-> None:
@@ -80,7 +80,7 @@ class SHAMerkleTree(BaseMerkleTree):
     def __init__(self, values: List[str])-> None:
         self.__build_tree(values)
  
-    def __build_tree(self, values: List[str])-> None: # FIXME depends on length of leaves 
+    def __build_tree(self, values: List[str])-> None: # FIXME recursive depends on length of leaves 
  
         leaves: List[SHANode] = [SHANode(None, None, SHANode.hash(e),e) for e in values]
         if len(leaves) % 2 == 1:
