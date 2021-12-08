@@ -52,14 +52,13 @@ class Chain:
         while True: 
             guess_hash = self.valid_proof(previous_nonce, nonce) 
             if guess_hash[:puzzle] == puzzle * "0":
-                print(guess_hash)
                 break
             nonce += 1
             
         return nonce
 
     @staticmethod
-    def valid_proof(previous_proof, proof):
+    def valid_proof(previous_nonce, nonce):
         raise NotImplementedError
 
 

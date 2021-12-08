@@ -2,6 +2,7 @@ import argparse
 from fastapi import FastAPI
 from uuid import uuid4
 from pydantic import BaseModel
+import time
 
 from chain import (BlakeChain, SHAChain)
 from merkle_tree import MerkleTree
@@ -15,19 +16,18 @@ else:
 
 merkle_tree = MerkleTree(cfg.hash)
 
-sender_id = str(uuid4()).replace('-', '')
-recipient_id = str(uuid4()).replace('-', '')
 miner_id ="1"
 
 class TX(BaseModel):
-    sender = sender_id
-    recipient = recipient_id
+    sender: str
+    recipient: str
     amount: int
 
 app = FastAPI() # TODO pass port number from config file
 
 @app.get('/mine')
-def mine():
+def mine(): # TODO nonce should be guess hash 
+    minig_start = time.time_ns()
     last_block = blockchain.last_block
     last_nonce = last_block['nonce']
     nonce = blockchain.proof_of_work(last_nonce)
@@ -43,8 +43,13 @@ def mine():
     merkle_root = merkle_tree.get_merkle_root()
     # merkle_root = merkle_tree(txs).get_root_hash() 
     block = blockchain.new_block(nonce, merkle_root, previous_hash)
+    time_took = time.time_ns() - minig_start
+    with open(cfg.results_file, "a") as res_file:
+        res_file.write(str(time_took) + "\n")
     response = {
             'message': 'New block added',
+            'time took(ns)': time_took,
+            'nonce': block['nonce'],
             'index': block['index'],
             'hash': block['hash'],
             'merkle_root': block['merkle_root'],
