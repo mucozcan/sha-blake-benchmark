@@ -9,7 +9,7 @@ for block in range(chain_length):
                 'amount':tx_amount}
         res = requests.post(f'http://localhost:{port}{tx_endpoint}',json=data)
         print(res.json())
-        time.sleep(0.5)
+        time.sleep(0.25)
     res = requests.get(f'http://localhost:{port}{mining_endpoint}')
     print(res.json())
-    time.sleep(1)
+    time.sleep(0.1)

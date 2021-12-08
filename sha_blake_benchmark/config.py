@@ -1,6 +1,6 @@
 from uuid import uuid4
 
-hash = "blake2b"
+hash = "sha256"
 
 sender_id = str(uuid4()).replace('-', '')
 recipient_id = str(uuid4()).replace('-', '')
@@ -13,7 +13,7 @@ tx_amount=10
 port = 4544
 tx_endpoint = "/tx/new"
 mining_endpoint = "/mine"
-results_file = "./results/blake_round9.txt"
+results_file = "./results/sha256/sha256_round9.txt"
 """
 always 10 blocks
 
