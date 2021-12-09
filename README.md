@@ -1,4 +1,4 @@
-## Performance comparison SHA256 with BLAKE2b on PoW
+## Performance comparison of SHA256 and BLAKE2b on PoW
 
 ### Linux Installation
 
