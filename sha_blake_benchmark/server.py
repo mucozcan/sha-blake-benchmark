@@ -19,8 +19,8 @@ merkle_tree = MerkleTree(cfg.hash)
 miner_id ="1"
 
 class TX(BaseModel):
-    sender: str
-    recipient: str
+    sender = cfg.sender_id
+    recipient = cfg.recipient_id
     amount: int
 
 app = FastAPI() 

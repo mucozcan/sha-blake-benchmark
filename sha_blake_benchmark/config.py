@@ -14,6 +14,7 @@ port = 4544
 tx_endpoint = "/tx/new"
 mining_endpoint = "/mine"
 results_file = "./results/sha256/sha256_round9.txt"
+
 """
 always 10 blocks
 
