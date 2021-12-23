@@ -5,7 +5,7 @@ hash = "sha256"
 sender_id = str(uuid4()).replace('-', '')
 recipient_id = str(uuid4()).replace('-', '')
 
-puzzle = 6
+puzzle = 2
 chain_length = 10
 tx_per_block=6
 tx_amount=10
